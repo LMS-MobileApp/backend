@@ -1,0 +1,2365 @@
+
+
+
+
+# openapi: 3.0.3
+# info:
+#   title: LMS Backend API
+#   description: |
+#     API for a Learning Management System with authentication, assignments, and group chat features.
+#     Note: Real-time messaging uses Socket.IO (e.g., `sendMessage` event) and is not documented here.
+#     Use the REST endpoint `POST /api/group-chats/{groupChatId}/messages` for Swagger-testable messaging.
+#   version: 1.0.0
+# servers:
+#   - url: http://localhost:5001
+#     description: Local development server
+# paths:
+#   # Authentication
+#   /api/auth/register:
+#     post:
+#       summary: Register a new user
+#       tags:
+#         - Authentication
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 name:
+#                   type: string
+#                   example: John Doe
+#                 email:
+#                   type: string
+#                   example: john.doe@example.com
+#                 password:
+#                   type: string
+#                   example: password123
+#                 course:
+#                   type: string
+#                   example: Computer Science
+#                 batch:
+#                   type: string
+#                   example: 2023
+#                 regNo:
+#                   type: string
+#                   example: CS12345
+#                 role:
+#                   type: string
+#                   enum: [student, admin]
+#                   example: student
+#               required:
+#                 - name
+#                 - email
+#                 - password
+#       responses:
+#         '201':
+#           description: User registered successfully
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   token:
+#                     type: string
+#                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+#         '400':
+#           description: User already exists
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/auth/login:
+#     post:
+#       summary: Login user and return JWT
+#       tags:
+#         - Authentication
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 email:
+#                   type: string
+#                   example: john.doe@example.com
+#                 password:
+#                   type: string
+#                   example: password123
+#               required:
+#                 - email
+#                 - password
+#       responses:
+#         '200':
+#           description: Login successful
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   token:
+#                     type: string
+#                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+#         '401':
+#           description: Invalid credentials
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/auth/profile:
+#     get:
+#       summary: Get user profile
+#       tags:
+#         - Authentication
+#       security:
+#         - bearerAuth: []
+#       responses:
+#         '200':
+#           description: User profile retrieved
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/User'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#     put:
+#       summary: Update user profile
+#       tags:
+#         - Authentication
+#       security:
+#         - bearerAuth: []
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 name:
+#                   type: string
+#                   example: John Doe
+#                 email:
+#                   type: string
+#                   example: john.doe@example.com
+#                 course:
+#                   type: string
+#                   example: Computer Science
+#                 batch:
+#                   type: string
+#                   example: 2023
+#                 regNo:
+#                   type: string
+#                   example: CS12345
+#       responses:
+#         '200':
+#           description: Profile updated
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/User'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: User not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   # Assignments
+#   /api/assignments:
+#     post:
+#       summary: Create a new assignment (Admin only)
+#       tags:
+#         - Assignments
+#       security:
+#         - bearerAuth: []
+#       requestBody:
+#         required: true
+#         content:
+#           multipart/form-data:
+#             schema:
+#               type: object
+#               properties:
+#                 title:
+#                   type: string
+#                   example: Assignment 1
+#                 course:
+#                   type: string
+#                   example: Computer Science
+#                 subject:
+#                   type: string
+#                   example: Programming
+#                 dueDate:
+#                   type: string
+#                   format: date
+#                   example: 2025-04-15
+#                 dueTime:
+#                   type: string
+#                   example: 14:30
+#                 priority:
+#                   type: string
+#                   enum: [low, medium, high]
+#                   example: high
+#                 pdf:
+#                   type: string
+#                   format: binary
+#               required:
+#                 - title
+#                 - course
+#                 - subject
+#                 - dueDate
+#                 - dueTime
+#                 - pdf
+#       responses:
+#         '201':
+#           description: Assignment created
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Assignment'
+#         '400':
+#           description: PDF file is required
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Access denied (not admin)
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#     get:
+#       summary: Get all assignments
+#       tags:
+#         - Assignments
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: query
+#           name: status
+#           schema:
+#             type: string
+#             enum: [pending, completed]
+#           description: Filter by status
+#         - in: query
+#           name: course
+#           schema:
+#             type: string
+#           description: Filter by course
+#         - in: query
+#           name: subject
+#           schema:
+#             type: string
+#           description: Filter by subject
+#       responses:
+#         '200':
+#           description: List of assignments
+#           content:
+#             application/json:
+#               schema:
+#                 type: array
+#                 items:
+#                   $ref: '#/components/schemas/Assignment'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/assignments/{id}:
+#     put:
+#       summary: Update an assignment (Admin only)
+#       tags:
+#         - Assignments
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: id
+#           required: true
+#           schema:
+#             type: string
+#           description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+#       requestBody:
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 title:
+#                   type: string
+#                   example: Assignment 1 Updated
+#                 course:
+#                   type: string
+#                   example: Computer Science
+#                 subject:
+#                   type: string
+#                   example: Programming
+#                 dueDate:
+#                   type: string
+#                   format: date
+#                   example: 2025-04-15
+#                 dueTime:
+#                   type: string
+#                   example: 14:30
+#                 priority:
+#                   type: string
+#                   enum: [low, medium, high]
+#                   example: high
+#                 status:
+#                   type: string
+#                   enum: [pending, completed]
+#                   example: pending
+#       responses:
+#         '200':
+#           description: Assignment updated
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Assignment'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Not authorized
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Assignment not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#     delete:
+#       summary: Delete an assignment (Admin only)
+#       tags:
+#         - Assignments
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: id
+#           required: true
+#           schema:
+#             type: string
+#           description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+#       responses:
+#         '200':
+#           description: Assignment deleted
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   message:
+#                     type: string
+#                     example: Assignment deleted
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Not authorized
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Assignment not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/assignments/{id}/submit:
+#     post:
+#       summary: Submit an assignment (Student only)
+#       tags:
+#         - Assignments
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: id
+#           required: true
+#           schema:
+#             type: string
+#           description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+#       requestBody:
+#         required: true
+#         content:
+#           multipart/form-data:
+#             schema:
+#               type: object
+#               properties:
+#                 submission:
+#                   type: string
+#                   format: binary
+#               required:
+#                 - submission
+#       responses:
+#         '200':
+#           description: Assignment submitted
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   message:
+#                     type: string
+#                     example: Assignment submitted
+#                   assignment:
+#                     $ref: '#/components/schemas/Assignment'
+#         '400':
+#           description: Submission file required
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Access denied (not student)
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Assignment not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   # Group Chats
+#   /api/group-chats:
+#     post:
+#       summary: 1. Create a new group chat
+#       tags:
+#         - Group Chats
+#       security:
+#         - bearerAuth: []
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 assignmentId:
+#                   type: string
+#                   example: 67f02df8020c2886cd44c047
+#                 name:
+#                   type: string
+#                   example: HDSE Group
+#               required:
+#                 - assignmentId
+#                 - name
+#       responses:
+#         '201':
+#           description: Group chat created
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GroupChat'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Assignment not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/group-chats/{groupChatId}/join:
+#     post:
+#       summary: 2. Join a group chat
+#       tags:
+#         - Group Chats
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: groupChatId
+#           required: true
+#           schema:
+#             type: string
+#           description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+#       responses:
+#         '200':
+#           description: Joined group chat
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/GroupChat'
+#         '400':
+#           description: Already a member
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Group chat not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/group-chats/{groupChatId}/messages:
+#     get:
+#       summary: 3. Get messages in a group chat
+#       tags:
+#         - Group Chats
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: groupChatId
+#           required: true
+#           schema:
+#             type: string
+#           description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+#       responses:
+#         '200':
+#           description: List of messages
+#           content:
+#             application/json:
+#               schema:
+#                 type: array
+#                 items:
+#                   $ref: '#/components/schemas/Message'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Not a member
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Group chat not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#     post:
+#       summary: 4. Send a message to a group chat (REST alternative)
+#       tags:
+#         - Group Chats
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: groupChatId
+#           required: true
+#           schema:
+#             type: string
+#           description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+#       requestBody:
+#         required: true
+#         content:
+#           application/json:
+#             schema:
+#               type: object
+#               properties:
+#                 content:
+#                   type: string
+#                   example: Hello, HDSE Group! This is a test via REST.
+#               required:
+#                 - content
+#       responses:
+#         '201':
+#           description: Message sent successfully
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Message'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '403':
+#           description: Not a member
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Group chat not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+#   /api/group-chats/{groupChatId}/leave:
+#     post:
+#       summary: 5. Leave a group chat
+#       tags:
+#         - Group Chats
+#       security:
+#         - bearerAuth: []
+#       parameters:
+#         - in: path
+#           name: groupChatId
+#           required: true
+#           schema:
+#             type: string
+#           description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+#       responses:
+#         '200':
+#           description: Left group chat
+#           content:
+#             application/json:
+#               schema:
+#                 type: object
+#                 properties:
+#                   message:
+#                     type: string
+#                     example: Left group chat successfully
+#         '400':
+#           description: Not a member
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '401':
+#           description: Authentication failed
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '404':
+#           description: Group chat not found
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+#         '500':
+#           description: Server error
+#           content:
+#             application/json:
+#               schema:
+#                 $ref: '#/components/schemas/Error'
+
+# components:
+#   schemas:
+#     User:
+#       type: object
+#       properties:
+#         _id:
+#           type: string
+#           example: 67ef9afa16917bcbf03f6dc0
+#         name:
+#           type: string
+#           example: John Doe
+#         email:
+#           type: string
+#           example: john.doe@example.com
+#         course:
+#           type: string
+#           example: Computer Science
+#         batch:
+#           type: string
+#           example: 2023
+#         regNo:
+#           type: string
+#           example: CS12345
+#         role:
+#           type: string
+#           enum: [student, admin]
+#           example: student
+#         profilePicture:
+#           type: string
+#           example: https://lms-app1.s3.ap-south-1.amazonaws.com/profiles/pic.jpg
+#         createdAt:
+#           type: string
+#           format: date-time
+#           example: 2025-04-04T12:00:00Z
+#       required:
+#         - _id
+#         - name
+#         - email
+#         - role
+
+#     Assignment:
+#       type: object
+#       properties:
+#         _id:
+#           type: string
+#           example: 67f02df8020c2886cd44c047
+#         title:
+#           type: string
+#           example: Assignment 1
+#         course:
+#           type: string
+#           example: Computer Science
+#         subject:
+#           type: string
+#           example: Programming
+#         dueDate:
+#           type: string
+#           format: date
+#           example: 2025-04-15
+#         dueTime:
+#           type: string
+#           example: 14:30
+#         priority:
+#           type: string
+#           enum: [low, medium, high]
+#           example: medium
+#         status:
+#           type: string
+#           enum: [pending, completed]
+#           example: pending
+#         pdfUrl:
+#           type: string
+#           example: https://lms-app1.s3.ap-south-1.amazonaws.com/assignments/1743762136006-AD_Coursework1.pdf
+#         createdBy:
+#           type: object
+#           properties:
+#             _id:
+#               type: string
+#               example: 67ef9afa16917bcbf03f6dc0
+#             name:
+#               type: string
+#               example: Admin User
+#         submissions:
+#           type: array
+#           items:
+#             type: object
+#             properties:
+#               student:
+#                 type: string
+#                 example: 67ef9afa16917bcbf03f6dc0
+#               submittedAt:
+#                 type: string
+#                 format: date-time
+#                 example: 2025-04-05T12:00:00Z
+#               submissionUrl:
+#                 type: string
+#                 example: https://lms-app1.s3.ap-south-1.amazonaws.com/submissions/1743762136007-submission.pdf
+#         createdAt:
+#           type: string
+#           format: date-time
+#           example: 2025-04-04T12:00:00Z
+#       required:
+#         - _id
+#         - title
+#         - course
+#         - subject
+#         - dueDate
+#         - dueTime
+#         - createdBy
+
+#     GroupChat:
+#       type: object
+#       properties:
+#         _id:
+#           type: string
+#           example: 67f02fa4d9ccbcd395e73ef6
+#         assignment:
+#           type: string
+#           example: 67f02df8020c2886cd44c047
+#         name:
+#           type: string
+#           example: HDSE Group
+#         members:
+#           type: array
+#           items:
+#             type: string
+#             example: 67ef9afa16917bcbf03f6dc0
+#         createdAt:
+#           type: string
+#           format: date-time
+#           example: 2025-04-04T12:00:00Z
+#       required:
+#         - _id
+#         - assignment
+#         - name
+
+#     Message:
+#       type: object
+#       properties:
+#         _id:
+#           type: string
+#           example: 507f1f77bcf86cd799439011
+#         groupChat:
+#           type: string
+#           example: 67f02fa4d9ccbcd395e73ef6
+#         sender:
+#           type: object
+#           properties:
+#             _id:
+#               type: string
+#               example: 67ef9afa16917bcbf03f6dc0
+#             name:
+#               type: string
+#               example: John Doe
+#             email:
+#               type: string
+#               example: john.doe@example.com
+#         content:
+#           type: string
+#           example: Hello group!
+#         sentAt:
+#           type: string
+#           format: date-time
+#           example: 2025-04-04T12:05:00Z
+#       required:
+#         - _id
+#         - groupChat
+#         - sender
+#         - content
+
+#     Error:
+#       type: object
+#       properties:
+#         message:
+#           type: string
+#           example: Error message here
+#       required:
+#         - message
+
+#   securitySchemes:
+#     bearerAuth:
+#       type: http
+#       scheme: bearer
+#       bearerFormat: JWT
+
+
+
+
+openapi: 3.0.3
+info:
+  title: LMS Backend API
+  description: |
+    API for a Learning Management System with authentication, assignments, group chat, note features, and a chatbot.
+    Note: Real-time messaging uses Socket.IO (e.g., `sendMessage` event) and is not documented here.
+    Use the REST endpoint `POST /api/group-chats/{groupChatId}/messages` for Swagger-testable messaging.
+  version: 1.0.0
+servers:
+  - url: http://localhost:5001
+    description: Local development server
+paths:
+  # Authentication
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  example: password123
+                course:
+                  type: string
+                  example: Computer Science
+                batch:
+                  type: string
+                  example: 2023
+                regNo:
+                  type: string
+                  example: CS12345
+                role:
+                  type: string
+                  enum: [student, admin]
+                  example: student
+              required:
+                - name
+                - email
+                - password
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '400':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/login:
+    post:
+      summary: Login user and return JWT
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: john.doe@example.com
+                password:
+                  type: string
+                  example: password123
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/profile:
+    get:
+      summary: Get user profile
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update user profile
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  example: john.doe@example.com
+                course:
+                  type: string
+                  example: Computer Science
+                batch:
+                  type: string
+                  example: 2023
+                regNo:
+                  type: string
+                  example: CS12345
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Assignments
+  /api/assignments:
+    post:
+      summary: Create a new assignment (Admin only)
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Assignment 1
+                course:
+                  type: string
+                  example: Computer Science
+                subject:
+                  type: string
+                  example: Programming
+                dueDate:
+                  type: string
+                  format: date
+                  example: 2025-04-15
+                dueTime:
+                  type: string
+                  example: 14:30
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: high
+                pdf:
+                  type: string
+                  format: binary
+                  description: PDF file of the assignment (max 5MB)
+              required:
+                - title
+                - course
+                - subject
+                - dueDate
+                - dueTime
+                - pdf
+      responses:
+        '201':
+          description: Assignment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '400':
+          description: PDF file is required or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get all assignments
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, completed]
+          description: Filter by status
+        - in: query
+          name: course
+          schema:
+            type: string
+          description: Filter by course
+        - in: query
+          name: subject
+          schema:
+            type: string
+          description: Filter by subject
+      responses:
+        '200':
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Assignment'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/assignments/{id}:
+    put:
+      summary: Update an assignment (Admin only)
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: Assignment 1 Updated
+                course:
+                  type: string
+                  example: Computer Science
+                subject:
+                  type: string
+                  example: Programming
+                dueDate:
+                  type: string
+                  format: date
+                  example: 2025-04-15
+                dueTime:
+                  type: string
+                  example: 14:30
+                priority:
+                  type: string
+                  enum: [low, medium, high]
+                  example: high
+                status:
+                  type: string
+                  enum: [pending, completed]
+                  example: pending
+      responses:
+        '200':
+          description: Assignment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assignment'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete an assignment (Admin only)
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+      responses:
+        '200':
+          description: Assignment deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Assignment deleted
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/assignments/{id}/submit:
+    post:
+      summary: Submit an assignment (Student only)
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Assignment ID (e.g., 67f02df8020c2886cd44c047)
+      requestBody:
+        description: Submit either a file (PDF, max 5MB) or a link for the assignment
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                submission:
+                  type: string
+                  format: binary
+                  description: PDF file upload (optional if link is provided)
+          application/json:
+            schema:
+              type: object
+              properties:
+                link:
+                  type: string
+                  example: https://drive.google.com/file/d/xyz
+                  description: URL to submission (optional if file is uploaded)
+      responses:
+        '200':
+          description: Assignment submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Assignment submitted
+                  assignment:
+                    $ref: '#/components/schemas/Assignment'
+        '400':
+          description: Submission file or link required, or already submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied (not student)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/assignments/submissions:
+    get:
+      summary: Get submitted assignments by batch and course (Admin only)
+      tags:
+        - Assignments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: batch
+          schema:
+            type: string
+            example: 2023
+          description: Filter by student batch (optional)
+        - in: query
+          name: course
+          schema:
+            type: string
+            example: Computer Science
+          description: Filter by course (optional)
+      responses:
+        '200':
+          description: List of assignments with submissions
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/SubmittedAssignment'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: No submissions found for the given filters
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SubmittedAssignment'
+                        example: []
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Access denied (not admin)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Group Chats (unchanged)
+  /api/group-chats:
+    post:
+      summary: Create a new group chat
+      tags:
+        - Group Chats
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignmentId:
+                  type: string
+                  example: 67f02df8020c2886cd44c047
+                name:
+                  type: string
+                  example: HDSE Group
+              required:
+                - assignmentId
+                - name
+      responses:
+        '201':
+          description: Group chat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupChat'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/group-chats/{groupChatId}/join:
+    post:
+      summary: Join a group chat
+      tags:
+        - Group Chats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupChatId
+          required: true
+          schema:
+            type: string
+          description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+      responses:
+        '200':
+          description: Joined group chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupChat'
+        '400':
+          description: Already a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/group-chats/{groupChatId}/messages:
+    get:
+      summary: Get messages in a group chat
+      tags:
+        - Group Chats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupChatId
+          required: true
+          schema:
+            type: string
+          description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Send a message to a group chat (REST alternative)
+      tags:
+        - Group Chats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupChatId
+          required: true
+          schema:
+            type: string
+          description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  example: Hello, HDSE Group! This is a test via REST.
+              required:
+                - content
+      responses:
+        '201':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/group-chats/{groupChatId}/leave:
+    post:
+      summary: Leave a group chat
+      tags:
+        - Group Chats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: groupChatId
+          required: true
+          schema:
+            type: string
+          description: Group Chat ID (e.g., 67f02fa4d9ccbcd395e73ef6)
+      responses:
+        '200':
+          description: Left group chat
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Left group chat successfully
+        '400':
+          description: Not a member
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Group chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Notes (unchanged)
+  /api/notes:
+    post:
+      summary: Create a new note or to-do
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                assignment:
+                  type: string
+                  example: 67f02df8020c2886cd44c047
+                content:
+                  type: string
+                  example: Review chapter 5 for Assignment 1
+                type:
+                  type: string
+                  enum: [note, todo]
+                  example: note
+              required:
+                - assignment
+                - content
+      responses:
+        '201':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Assignment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get all notes for the authenticated user
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: assignmentId
+          schema:
+            type: string
+          description: Filter by assignment ID (optional)
+      responses:
+        '200':
+          description: List of notes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Note'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/notes/{noteId}:
+    get:
+      summary: Get a specific note
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: noteId
+          required: true
+          schema:
+            type: string
+          description: Note ID (e.g., 507f1f77bcf86cd799439011)
+      responses:
+        '200':
+          description: Note retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a note
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: noteId
+          required: true
+          schema:
+            type: string
+          description: Note ID (e.g., 507f1f77bcf86cd799439011)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  example: Updated review for chapter 5
+                type:
+                  type: string
+                  enum: [note, todo]
+                  example: todo
+                completed:
+                  type: boolean
+                  example: true
+      responses:
+        '200':
+          description: Note updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Delete a note
+      tags:
+        - Notes
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: noteId
+          required: true
+          schema:
+            type: string
+          description: Note ID (e.g., 507f1f77bcf86cd799439011)
+      responses:
+        '200':
+          description: Note deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Note deleted successfully
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Not authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Note not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # Chatbot (unchanged)
+  /api/chat:
+    post:
+      summary: Chat with the LMS chatbot
+      tags:
+        - Chatbot
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: What are my assignments?
+              required:
+                - message
+      responses:
+        '200':
+          description: Chatbot response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Here are your assignments: Assignment 1 - Due 2025-04-15, Course Computer Science"
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 67ef9afa16917bcbf03f6dc0
+        name:
+          type: string
+          example: John Doe
+        email:
+          type: string
+          example: john.doe@example.com
+        course:
+          type: string
+          example: Computer Science
+        batch:
+          type: string
+          example: 2023
+        regNo:
+          type: string
+          example: CS12345
+        role:
+          type: string
+          enum: [student, admin]
+          example: student
+        profilePicture:
+          type: string
+          example: https://lms-app1.s3.ap-south-1.amazonaws.com/profiles/pic.jpg
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-04T12:00:00Z
+      required:
+        - _id
+        - name
+        - email
+        - role
+
+    Assignment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 67f02df8020c2886cd44c047
+        title:
+          type: string
+          example: Assignment 1
+        course:
+          type: string
+          example: Computer Science
+        subject:
+          type: string
+          example: Programming
+        dueDate:
+          type: string
+          format: date
+          example: 2025-04-15
+        dueTime:
+          type: string
+          example: 14:30
+        priority:
+          type: string
+          enum: [low, medium, high]
+          example: medium
+        status:
+          type: string
+          enum: [pending, completed]
+          example: pending
+        pdfUrl:
+          type: string
+          example: https://lms-app1.s3.ap-south-1.amazonaws.com/assignments/1743762136006-AD_Coursework1.pdf
+        createdBy:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 67ef9afa16917bcbf03f6dc0
+            name:
+              type: string
+              example: Admin User
+        submissions:
+          type: array
+          items:
+            type: object
+            properties:
+              student:
+                type: string
+                example: 67ef9afa16917bcbf03f6dc0
+              submittedAt:
+                type: string
+                format: date-time
+                example: 2025-04-05T12:00:00Z
+              submissionType:
+                type: string
+                enum: [file, link]
+                example: file
+              submissionUrl:
+                type: string
+                example: https://lms-app1.s3.ap-south-1.amazonaws.com/submissions/1743762136007-submission.pdf
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-04T12:00:00Z
+      required:
+        - _id
+        - title
+        - course
+        - subject
+        - dueDate
+        - dueTime
+        - createdBy
+
+    SubmittedAssignment:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 67f02df8020c2886cd44c047
+        title:
+          type: string
+          example: Assignment 1
+        course:
+          type: string
+          example: Computer Science
+        subject:
+          type: string
+          example: Programming
+        dueDate:
+          type: string
+          format: date
+          example: 2025-04-15
+        dueTime:
+          type: string
+          example: 14:30
+        submissions:
+          type: array
+          items:
+            type: object
+            properties:
+              student:
+                type: object
+                properties:
+                  _id:
+                    type: string
+                    example: 67ef9afa16917bcbf03f6dc0
+                  name:
+                    type: string
+                    example: John Doe
+                  email:
+                    type: string
+                    example: john.doe@example.com
+                  regNo:
+                    type: string
+                    example: CS12345
+                  batch:
+                    type: string
+                    example: 2023
+                  course:
+                    type: string
+                    example: Computer Science
+                required:
+                  - _id
+                  - name
+                  - email
+                  - regNo
+                  - batch
+                  - course
+              submissionType:
+                type: string
+                enum: [file, link]
+                example: file
+              submissionUrl:
+                type: string
+                example: https://lms-app1.s3.ap-south-1.amazonaws.com/submissions/1743762136007-submission.pdf
+              submittedAt:
+                type: string
+                format: date-time
+                example: 2025-04-05T12:00:00Z
+            required:
+              - student
+              - submissionType
+              - submissionUrl
+              - submittedAt
+      required:
+        - _id
+        - title
+        - course
+        - subject
+        - dueDate
+        - dueTime
+        - submissions
+
+    GroupChat:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 67f02fa4d9ccbcd395e73ef6
+        assignment:
+          type: string
+          example: 67f02df8020c2886cd44c047
+        name:
+          type: string
+          example: HDSE Group
+        members:
+          type: array
+          items:
+            type: string
+            example: 67ef9afa16917bcbf03f6dc0
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-04T12:00:00Z
+      required:
+        - _id
+        - assignment
+        - name
+
+    Message:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        groupChat:
+          type: string
+          example: 67f02fa4d9ccbcd395e73ef6
+        sender:
+          type: object
+          properties:
+            _id:
+              type: string
+              example: 67ef9afa16917bcbf03f6dc0
+            name:
+              type: string
+              example: John Doe
+            email:
+              type: string
+              example: john.doe@example.com
+        content:
+          type: string
+          example: Hello group!
+        sentAt:
+          type: string
+          format: date-time
+          example: 2025-04-04T12:05:00Z
+      required:
+        - _id
+        - groupChat
+        - sender
+        - content
+
+    Note:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+        assignment:
+          type: string
+          example: 67f02df8020c2886cd44c047
+        user:
+          type: string
+          example: 67ef9afa16917bcbf03f6dc0
+        content:
+          type: string
+          example: Review chapter 5 for Assignment 1
+        type:
+          type: string
+          enum: [note, todo]
+          example: note
+        completed:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: 2025-04-04T12:00:00Z
+      required:
+        - _id
+        - assignment
+        - user
+        - content
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Error message here
+      required:
+        - message
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
