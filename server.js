@@ -249,11 +249,11 @@ io.on("connection", (socket) => {
 
 const seedAdmin = async () => {
   try {
-    const adminExists = await User.findOne({ email: "admin@example.com" });
+    const adminExists = await User.findOne({ email: "admin.com" });
     if (!adminExists) {
       const admin = new User({
         name: "Default Admin",
-        email: "admin@example.com",
+        email: "admin.com",
         password: "admin123",
         role: "admin",
       });
@@ -292,3 +292,4 @@ app.get("/", (req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+

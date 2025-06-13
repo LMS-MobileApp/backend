@@ -21,3 +21,4 @@ router.get("/", auth, getAllGroupChats);
 router.get("/all", auth, getAllGroupChatsPublic);
 
 export default router;
+

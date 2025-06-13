@@ -18,7 +18,7 @@ console.log("Email Config:", {
 const transporter = nodemailer.createTransport({
   host: config.EMAIL_HOST,
   port: parseInt(config.EMAIL_PORT, 10),
-  secure: false,
+  secure: false, // Use true for port 465, false for 587 (STARTTLS)
   auth: {
     user: config.EMAIL_USER,
     pass: config.EMAIL_PASS,
@@ -63,7 +63,7 @@ const sendEmail = async (to, subject, data, templateName = "assignmentNotificati
 
     const mailOptions = {
       from: config.EMAIL_USER,
-      to,
+      to: Array.isArray(to) ? to.join(",") : to,
       subject,
       html,
     };
@@ -87,6 +87,11 @@ export const sendSubmissionConfirmation = async (to, assignmentTitle, submittedA
     submittedAt,
   };
   return sendEmail(to, "Assignment Submission Confirmation", data, "submissionConfirmation");
+};
+
+// Function for assignment creation notification
+export const sendAssignmentNotification = async (to, subject, data) => {
+  return sendEmail(to, subject, data, "assignmentNotification");
 };
 
 export default sendEmail;
